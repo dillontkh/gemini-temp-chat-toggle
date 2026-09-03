@@ -1,5 +1,6 @@
 *.xpi
 *.zip
 node_modules/
+web-ext-artifacts/
 dev/normal.html
 dev/temporary.html

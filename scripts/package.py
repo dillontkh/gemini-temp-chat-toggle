@@ -5,12 +5,12 @@ root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 zip_path = os.path.join(root, "gemini-temp-chat-toggle.zip")
 
 EXCLUDE_DIRS = {
-    "node_modules", ".git", "tests", "dev", "scripts"
+    "node_modules", ".git", "tests", "dev", "scripts", ".github"
 }
 EXCLUDE_FILES = {
     "package.json", "package-lock.json", ".gitignore",
     ".web-ext-config.cjs", "gemini-temp-chat-toggle.zip",
-    "normal.html", "temporary.html", "AGENTS.md"
+    "normal.html", "temporary.html", "AGENTS.md", "updates.json"
 }
 
 print(f"Building clean release zip at {zip_path}...")

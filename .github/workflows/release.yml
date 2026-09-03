@@ -1,0 +1,125 @@
+name: Release Extension
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run verification
+        run: |
+          npm test
+          npm run lint
+
+      - name: Sign extension via Mozilla AMO
+        id: sign
+        env:
+          WEB_EXT_API_KEY: ${{ secrets.AMO_JWT_ISSUER }}
+          WEB_EXT_API_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        run: |
+          VERSION=$(node -p "require('./manifest.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          npx web-ext sign \
+            --channel=unlisted \
+            --artifacts-dir=web-ext-artifacts \
+            --api-key="$WEB_EXT_API_KEY" \
+            --api-secret="$WEB_EXT_API_SECRET"
+
+          XPI_FILE=$(ls web-ext-artifacts/*.xpi | head -n 1)
+          if [ -z "$XPI_FILE" ]; then
+            echo "Error: No .xpi file found in web-ext-artifacts"
+            exit 1
+          fi
+
+          echo "xpi_file=$XPI_FILE" >> $GITHUB_OUTPUT
+          XPI_NAME=$(basename "$XPI_FILE")
+          echo "xpi_name=$XPI_NAME" >> $GITHUB_OUTPUT
+
+          SHA256=$(sha256sum "$XPI_FILE" | awk '{print $1}')
+          echo "sha256=$SHA256" >> $GITHUB_OUTPUT
+
+      - name: Update updates.json on main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout main
+
+          python3 - <<'EOF'
+          import json
+          import os
+
+          version = os.environ["VERSION"]
+          sha256 = os.environ["SHA256"]
+          xpi_name = os.environ["XPI_NAME"]
+          repo = os.environ["GITHUB_REPOSITORY"]
+          tag = f"v{version}"
+          download_url = f"https://github.com/{repo}/releases/download/{tag}/{xpi_name}"
+
+          with open("updates.json", "r") as f:
+              data = json.load(f)
+
+          addon_id = "gemini-temp-chat@dillontkh"
+          updates = data["addons"][addon_id]["updates"]
+
+          # Remove existing entry for this version if re-running
+          updates = [u for u in updates if u.get("version") != version]
+
+          new_entry = {
+              "version": version,
+              "update_link": download_url,
+              "update_hash": f"sha256:{sha256}"
+          }
+          updates.insert(0, new_entry)
+          data["addons"][addon_id]["updates"] = updates
+
+          with open("updates.json", "w") as f:
+              json.dump(data, f, indent=2)
+              f.write("\n")
+          EOF
+
+          git add updates.json
+          git commit -m "chore(updates): add v${{ steps.sign.outputs.version }} entry to updates.json [skip ci]" || echo "No changes to commit"
+          git push origin main
+        env:
+          VERSION: ${{ steps.sign.outputs.version }}
+          SHA256: ${{ steps.sign.outputs.sha256 }}
+          XPI_NAME: ${{ steps.sign.outputs.xpi_name }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.sign.outputs.version }}
+          name: v${{ steps.sign.outputs.version }}
+          files: ${{ steps.sign.outputs.xpi_file }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
