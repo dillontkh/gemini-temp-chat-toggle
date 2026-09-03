@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Recognizes `data-mat-icon-name="close"` when the button switches to its active exit state.
   - Detects `chat-window.is-temporary-chat` and `.temporary-chat-card-container`.
   - Accurately checks for Gemini's live disclaimer text (*"Temporary chats don't appear in recent chats and aren't used to improve Google AI"*).
+- **Page Refresh Shortcut Recovery**: Fixed an issue in Firefox Manifest V3 where refreshing the page broke the keyboard shortcut until the toolbar icon was clicked. Added `"activeTab"` and `"scripting"` permissions with automatic dynamic script injection fallback in `background.js`, plus a one-click "Always Allow" permission option in the popup settings.
 - **AMO Manifest Compliance**: Updated `strict_min_version` to `"142.0"` in `manifest.json` to eliminate Mozilla linter warnings regarding the `data_collection_permissions` property on desktop and mobile.
 
 ### Added

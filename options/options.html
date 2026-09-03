@@ -19,6 +19,15 @@
     </header>
 
     <main>
+      <!-- Permission Banner (visible if Always Allow has not been granted) -->
+      <div id="permission-card" class="permission-banner" style="display: none;">
+        <div class="permission-content">
+          <strong>⚡ Run automatically on refresh</strong>
+          <p>Click below so the shortcut works immediately upon refreshing without clicking the extension icon.</p>
+        </div>
+        <button id="grant-perm-btn" class="btn btn-primary btn-sm">Always Allow</button>
+      </div>
+
       <!-- Shortcut Settings Card -->
       <section class="card">
         <div class="card-header">

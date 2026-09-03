@@ -4,6 +4,41 @@
 
 const COMMAND_NAME = "toggle-temporary-chat";
 
+/**
+ * Send toggle message to tab, dynamically injecting content script if not loaded
+ */
+async function sendToggleOrInject(tabId) {
+  try {
+    await browser.tabs.sendMessage(tabId, { action: "toggle-temporary-chat" });
+  } catch (err) {
+    // Content script not reachable yet (e.g. freshly refreshed tab where declarative script hasn't run)
+    try {
+      if (browser.scripting) {
+        await browser.scripting.insertCSS({
+          target: { tabId },
+          files: ["content/toast.css"]
+        }).catch(() => {});
+
+        await browser.scripting.executeScript({
+          target: { tabId },
+          files: ["content/content.js"]
+        });
+
+        // Small delay to allow script initialization
+        setTimeout(async () => {
+          try {
+            await browser.tabs.sendMessage(tabId, { action: "toggle-temporary-chat" });
+          } catch (retryErr) {
+            console.error("[Gemini Temp Chat] Failed to send message after injection:", retryErr);
+          }
+        }, 60);
+      }
+    } catch (injectErr) {
+      console.error("[Gemini Temp Chat] Failed to inject content script:", injectErr);
+    }
+  }
+}
+
 // Listen for keyboard command triggers from browser.commands
 browser.commands.onCommand.addListener(async (command) => {
   if (command !== COMMAND_NAME) return;
@@ -11,16 +46,21 @@ browser.commands.onCommand.addListener(async (command) => {
   try {
     const tabs = await browser.tabs.query({ active: true, currentWindow: true });
     const activeTab = tabs[0];
+    if (!activeTab) return;
 
-    const isGemini = activeTab && activeTab.url && activeTab.url.includes("gemini.google.com");
+    let isGemini = activeTab.url && activeTab.url.includes("gemini.google.com");
+    if (!isGemini && !activeTab.url) {
+      try {
+        const fullTab = await browser.tabs.get(activeTab.id);
+        if (fullTab && fullTab.url && fullTab.url.includes("gemini.google.com")) {
+          isGemini = true;
+        }
+      } catch (e) {}
+    }
 
     if (isGemini) {
       // Send toggle message directly to the active Gemini tab
-      try {
-        await browser.tabs.sendMessage(activeTab.id, { action: "toggle-temporary-chat" });
-      } catch (err) {
-        console.warn("[Gemini Temp Chat] Content script not reachable yet, injecting if necessary:", err);
-      }
+      await sendToggleOrInject(activeTab.id);
       return;
     }
 
@@ -36,9 +76,7 @@ browser.commands.onCommand.addListener(async (command) => {
           await browser.windows.update(targetTab.windowId, { focused: true });
         }
         setTimeout(async () => {
-          try {
-            await browser.tabs.sendMessage(targetTab.id, { action: "toggle-temporary-chat" });
-          } catch (e) {}
+          await sendToggleOrInject(targetTab.id);
         }, 200);
       } else {
         // No open Gemini tab; open a new one
@@ -92,12 +130,12 @@ browser.runtime.onMessage.addListener(async (message, sender) => {
       const tabs = await browser.tabs.query({ active: true, currentWindow: true });
       const activeTab = tabs[0];
       if (activeTab && activeTab.url && activeTab.url.includes("gemini.google.com")) {
-        await browser.tabs.sendMessage(activeTab.id, { action: "toggle-temporary-chat" });
+        await sendToggleOrInject(activeTab.id);
         return { success: true, target: "active_gemini_tab" };
       } else {
         const geminiTabs = await browser.tabs.query({ url: "*://gemini.google.com/*" });
         if (geminiTabs.length > 0) {
-          await browser.tabs.sendMessage(geminiTabs[0].id, { action: "toggle-temporary-chat" });
+          await sendToggleOrInject(geminiTabs[0].id);
           return { success: true, target: "background_gemini_tab" };
         }
         return { success: false, error: "No open Gemini tab found to test with." };

@@ -42,6 +42,47 @@ async function init() {
   } catch (e) {
     console.warn("Storage sync failed, using defaults:", e);
   }
+
+  // 3. Check persistent host permission status
+  await checkHostPermission();
+}
+
+// Check and update permission banner visibility
+async function checkHostPermission() {
+  try {
+    const permCard = document.getElementById("permission-card");
+    if (!permCard || !browser.permissions) return;
+
+    const hasPerm = await browser.permissions.contains({
+      origins: ["*://gemini.google.com/*"]
+    });
+
+    permCard.style.display = hasPerm ? "none" : "flex";
+  } catch (e) {
+    console.warn("Could not check permissions:", e);
+  }
+}
+
+// Grant Persistent Permission Button
+const grantPermBtn = document.getElementById("grant-perm-btn");
+if (grantPermBtn) {
+  grantPermBtn.addEventListener("click", async () => {
+    try {
+      grantPermBtn.disabled = true;
+      const granted = await browser.permissions.request({
+        origins: ["*://gemini.google.com/*"]
+      });
+      if (granted) {
+        await checkHostPermission();
+        setFeedback("Permanent permission granted! Extension will run automatically on refresh.", "success");
+      } else {
+        grantPermBtn.disabled = false;
+      }
+    } catch (err) {
+      console.error("Permission request error:", err);
+      grantPermBtn.disabled = false;
+    }
+  });
 }
 
 // Show feedback message
