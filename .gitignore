@@ -1,5 +1,5 @@
 *.xpi
 *.zip
 node_modules/
-normal.html
-temporary.html
+dev/normal.html
+dev/temporary.html

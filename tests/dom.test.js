@@ -4,8 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const { JSDOM } = require('jsdom');
 
-const normalHtmlPath = path.join(__dirname, '..', 'normal.html');
-const tempHtmlPath = path.join(__dirname, '..', 'temporary.html');
+const normalHtmlPath = path.join(__dirname, '..', 'dev', 'normal.html');
+const tempHtmlPath = path.join(__dirname, '..', 'dev', 'temporary.html');
 
 describe("Content Script DOM Automation on Real Gemini Dumps", () => {
   function isTemporaryChatActive(doc) {
