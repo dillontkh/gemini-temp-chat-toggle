@@ -26,7 +26,7 @@ To run and test the add-on locally in Firefox:
 3. Click the **"Load Temporary Add-on..."** button.
 4. Browse to this directory and select:
    ```text
-   /home/dtserver/agent-workspace/gemini-temp-chat-addon/manifest.json
+   /home/dtserver/agent-workspace/gemini-temp-chat-toggle/manifest.json
    ```
 5. The add-on will now be loaded and active!
 
@@ -62,7 +62,7 @@ You can configure the shortcut in two ways:
 ## File Structure
 
 ```text
-gemini-temp-chat-addon/
+gemini-temp-chat-toggle/
 ├── manifest.json              # WebExtension Manifest V3
 ├── background.js              # Native commands handler & tab router
 ├── content/
