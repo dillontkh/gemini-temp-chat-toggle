@@ -3,6 +3,11 @@
     "gemini-temp-chat@dillontkh": {
       "updates": [
         {
+          "version": "1.0.2",
+          "update_link": "https://github.com/dillontkh/gemini-temp-chat-toggle/releases/download/v1.0.2/gemini_temporary_chat_toggle-1.0.2.xpi",
+          "update_hash": "sha256:7edcd7ea329f9c9992a50c45d329308c0667ebf7ba9383a4c289463a41539414"
+        },
+        {
           "version": "1.0.0",
           "update_link": "https://github.com/dillontkh/gemini-temp-chat-toggle/releases/download/v1.0.0/gemini_temporary_chat_toggle-1.0.0.xpi",
           "update_hash": "sha256:919e8c47f699bec135e8e56d5ced642a0b86563a273f6a7f8d7b66c41fe100dc"
