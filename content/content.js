@@ -200,14 +200,54 @@
       clearTimeout(activeToastTimeout);
     }
 
-    const iconSvg = type === "on" 
-      ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path><path d="M9 10h.01"></path><path d="M12 10h.01"></path><path d="M15 10h.01"></path></svg>`
-      : type === "off"
-      ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path><line x1="9" y1="9" x2="15" y2="15"></line><line x1="15" y1="9" x2="9" y2="15"></line></svg>`
-      : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
+    // Create SVG icon safely using createElementNS
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("width", "18");
+    svg.setAttribute("height", "18");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", "2");
+
+    if (type === "on") {
+      const pathBubble = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      pathBubble.setAttribute("d", "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z");
+      svg.appendChild(pathBubble);
+      for (const cx of [9, 12, 15]) {
+        const dot = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        dot.setAttribute("d", `M${cx} 10h.01`);
+        svg.appendChild(dot);
+      }
+    } else if (type === "off") {
+      const pathBubble = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      pathBubble.setAttribute("d", "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z");
+      const l1 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      l1.setAttribute("x1", "9"); l1.setAttribute("y1", "9"); l1.setAttribute("x2", "15"); l1.setAttribute("y2", "15");
+      const l2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      l2.setAttribute("x1", "15"); l2.setAttribute("y1", "9"); l2.setAttribute("x2", "9"); l2.setAttribute("y2", "15");
+      svg.append(pathBubble, l1, l2);
+    } else {
+      const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      circle.setAttribute("cx", "12"); circle.setAttribute("cy", "12"); circle.setAttribute("r", "10");
+      const l1 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      l1.setAttribute("x1", "12"); l1.setAttribute("y1", "8"); l1.setAttribute("x2", "12"); l1.setAttribute("y2", "12");
+      const l2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      l2.setAttribute("x1", "12"); l2.setAttribute("y1", "16"); l2.setAttribute("x2", "12.01"); l2.setAttribute("y2", "16");
+      svg.append(circle, l1, l2);
+    }
 
     toast.className = `gemini-temp-chat-toast toast-${type} toast-visible`;
-    toast.innerHTML = `<span class="toast-icon">${iconSvg}</span><span class="toast-text">${message}</span>`;
+    toast.textContent = "";
+
+    const iconSpan = document.createElement("span");
+    iconSpan.className = "toast-icon";
+    iconSpan.appendChild(svg);
+
+    const textSpan = document.createElement("span");
+    textSpan.className = "toast-text";
+    textSpan.textContent = message;
+
+    toast.append(iconSpan, textSpan);
 
     activeToastTimeout = setTimeout(() => {
       toast.classList.remove("toast-visible");
