@@ -1,0 +1,27 @@
+{
+  "name": "gemini-temp-chat-toggle",
+  "version": "1.0.0",
+  "description": "A lightweight, privacy-focused Firefox extension that lets you seamlessly toggle Google Gemini's **Temporary Chat** mode using a configurable keyboard shortcut.",
+  "main": "background.js",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "lint": "web-ext lint --self-hosted",
+    "serve": "node dev/server.js",
+    "build": "python3 scripts/package.py",
+    "dev": "web-ext run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dillontkh/gemini-temp-chat-toggle.git"
+  },
+  "keywords": [],
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/dillontkh/gemini-temp-chat-toggle/issues"
+  },
+  "homepage": "https://github.com/dillontkh/gemini-temp-chat-toggle#readme",
+  "devDependencies": {
+    "jsdom": "^30.0.1",
+    "web-ext": "^10.6.0"
+  }
+}

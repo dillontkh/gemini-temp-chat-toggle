@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mock Gemini Web App (Add-on Test Bed)</title>
+  <link rel="stylesheet" href="../content/toast.css">
+  <style>
+    :root {
+      --bg: #131314;
+      --sidebar-bg: #1e1f20;
+      --text: #e3e3e3;
+      --accent: #a8c7fa;
+      --hover: rgba(255, 255, 255, 0.08);
+      --border: rgba(255, 255, 255, 0.12);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Google Sans", "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+    /* Sidebar */
+    .sidebar {
+      width: 260px;
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      gap: 16px;
+      border-right: 1px solid var(--border);
+      transition: width 0.2s;
+    }
+    .sidebar.collapsed {
+      width: 68px;
+    }
+    .top-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .icon-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 13.5px;
+      font-weight: 500;
+      transition: background 0.15s;
+    }
+    .icon-btn:hover { background: var(--hover); }
+    .icon-btn[aria-pressed="true"] {
+      background: rgba(168, 199, 250, 0.2);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    /* Main Content */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .header {
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+    .chat-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+    }
+    .banner {
+      display: none;
+      background: rgba(168, 199, 250, 0.15);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
+    .banner.visible { display: block; }
+    .input-container {
+      width: 100%;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .prompt-box {
+      width: 100%;
+      background: #1e1f20;
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 16px 20px;
+      color: #fff;
+      font-size: 15px;
+      outline: none;
+      resize: none;
+      min-height: 80px;
+    }
+    .prompt-box:focus {
+      border-color: var(--accent);
+    }
+    .instructions {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      color: #8e918f;
+    }
+    .instructions kbd {
+      background: rgba(255, 255, 255, 0.15);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <aside class="sidebar" id="sidebar">
+    <button class="icon-btn" id="menu-toggle" aria-label="Main menu">☰</button>
+    <div class="top-actions">
+      <button class="icon-btn" id="new-chat-btn" aria-label="New chat">
+        <span>+</span> <span>New chat</span>
+      </button>
+      <button class="icon-btn" id="temp-chat-btn" aria-label="Temporary chat" aria-pressed="false">
+        <span>💬</span> <span>Temporary chat</span>
+      </button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="header">
+      <h2>Google Gemini (Test Bed)</h2>
+      <span id="mode-status">Mode: Standard Chat</span>
+    </header>
+
+    <div class="chat-area">
+      <div id="temp-banner" class="banner">
+        Chats aren't saved to your Google Account (Temporary Chat Active)
+      </div>
+      <h1 id="welcome-title">Hello, Dillon</h1>
+      <p style="color: #8e918f; margin-top: 8px;">Simulated Gemini environment to test keyboard shortcuts and DOM toggles.</p>
+    </div>
+
+    <div class="input-container">
+      <textarea id="prompt-input" class="prompt-box" placeholder="Ask Gemini"></textarea>
+    </div>
+
+    <div class="instructions">
+      Press <kbd>Alt+Shift+T</kbd> to toggle Temporary Chat &bull; Click buttons on left to test UI
+    </div>
+  </main>
+
+  <!-- WebExtension Mock Polyfill for standalone testing -->
+  <script>
+    window.browser = {
+      storage: {
+        sync: {
+          get: async (defaults) => ({ shortcut: "Alt+Shift+T", showToast: true, ...defaults }),
+          set: async () => {}
+        },
+        onChanged: { addListener: () => {} }
+      },
+      runtime: {
+        onMessage: { addListener: () => {} }
+      }
+    };
+
+    // Simulate Gemini UI reactions
+    const tempBtn = document.getElementById("temp-chat-btn");
+    const newChatBtn = document.getElementById("new-chat-btn");
+    const promptInput = document.getElementById("prompt-input");
+    const tempBanner = document.getElementById("temp-banner");
+    const modeStatus = document.getElementById("mode-status");
+
+    tempBtn.addEventListener("click", () => {
+      const isPressed = tempBtn.getAttribute("aria-pressed") === "true";
+      if (!isPressed) {
+        tempBtn.setAttribute("aria-pressed", "true");
+        promptInput.setAttribute("placeholder", "Ask in a temporary chat");
+        tempBanner.classList.add("visible");
+        modeStatus.textContent = "Mode: Temporary Chat (Active)";
+        modeStatus.style.color = "#a8c7fa";
+      } else {
+        tempBtn.setAttribute("aria-pressed", "false");
+        promptInput.setAttribute("placeholder", "Ask Gemini");
+        tempBanner.classList.remove("visible");
+        modeStatus.textContent = "Mode: Standard Chat";
+        modeStatus.style.color = "#e3e3e3";
+      }
+    });
+
+    newChatBtn.addEventListener("click", () => {
+      tempBtn.setAttribute("aria-pressed", "false");
+      promptInput.setAttribute("placeholder", "Ask Gemini");
+      tempBanner.classList.remove("visible");
+      modeStatus.textContent = "Mode: Standard Chat";
+      modeStatus.style.color = "#e3e3e3";
+    });
+  </script>
+
+  <!-- Injected Add-on Content Script -->
+  <script src="../content/content.js"></script>
+</body>
+</html>
