@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Gemini Temporary Chat Toggle",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Toggle Google Gemini's Temporary Chat with a configurable keyboard shortcut.",
   "icons": {
     "16": "icons/icon-16.png",
