@@ -45,6 +45,19 @@ async function init() {
 
   // 3. Check persistent host permission status
   await checkHostPermission();
+
+  // 4. Populate dynamic version in footer
+  const versionEl = document.getElementById("ext-version");
+  if (versionEl && typeof browser !== "undefined" && browser.runtime?.getManifest) {
+    try {
+      const manifest = browser.runtime.getManifest();
+      if (manifest && manifest.version) {
+        versionEl.textContent = `v${manifest.version}`;
+      }
+    } catch (e) {
+      // Keep static text fallback
+    }
+  }
 }
 
 // Check and update permission banner visibility
