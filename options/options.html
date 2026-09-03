@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gemini Temporary Chat Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="logo-area">
+        <img src="../icons/icon-48.png" alt="Gemini Temp Chat Icon" class="logo">
+        <div>
+          <h1>Gemini Temporary Chat</h1>
+          <p class="subtitle">Configurable keyboard shortcut for ephemeral sessions</p>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <!-- Shortcut Settings Card -->
+      <section class="card">
+        <div class="card-header">
+          <h2>Keyboard Shortcut</h2>
+          <span id="current-badge" class="badge">Alt+Shift+T</span>
+        </div>
+        
+        <p class="desc">
+          Press the shortcut when browsing Google Gemini to immediately switch between Temporary Chat mode and Standard Chat.
+        </p>
+
+        <div class="recorder-wrapper">
+          <label for="recorder-input">Record New Shortcut:</label>
+          <div class="input-group">
+            <input 
+              type="text" 
+              id="recorder-input" 
+              placeholder="Click here and press key combination..." 
+              readonly
+              autocomplete="off"
+            >
+            <button id="save-shortcut-btn" class="btn btn-primary" disabled>Apply</button>
+            <button id="reset-shortcut-btn" class="btn btn-secondary">Reset</button>
+          </div>
+          <div id="recorder-feedback" class="feedback"></div>
+        </div>
+      </section>
+
+      <!-- Preferences Card -->
+      <section class="card">
+        <h2>Preferences</h2>
+        
+        <div class="setting-item">
+          <label class="toggle-switch">
+            <input type="checkbox" id="show-toast-check" checked>
+            <span class="slider"></span>
+          </label>
+          <div class="setting-text">
+            <span class="setting-title">Show on-screen notification</span>
+            <span class="setting-subtitle">Display a subtle floating toast when mode toggles</span>
+          </div>
+        </div>
+
+        <div class="setting-item vertical">
+          <label for="outside-behavior-select" class="setting-title">
+            Behavior outside Gemini tab:
+          </label>
+          <select id="outside-behavior-select" class="select-box">
+            <option value="ignore">Do nothing (only trigger inside Gemini)</option>
+            <option value="switch">Switch to existing Gemini tab & toggle</option>
+            <option value="open">Open a new Gemini tab</option>
+          </select>
+        </div>
+
+        <div class="test-area">
+          <button id="test-toggle-btn" class="btn btn-outline">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            Test Toggle on Gemini Tab
+          </button>
+          <span id="test-feedback" class="test-feedback"></span>
+        </div>
+      </section>
+
+      <!-- Firefox Help Card -->
+      <section class="card hint-card">
+        <h3>Firefox Native Shortcuts</h3>
+        <p>
+          Firefox also provides a built-in shortcut manager. You can customize this shortcut anytime at:
+          <br>
+          <code>about:addons</code> &rarr; ⚙️ (Gear menu) &rarr; <strong>Manage Extension Shortcuts</strong>.
+        </p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>Gemini Temporary Chat Toggle &bull; v1.0.0</span>
+    </footer>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

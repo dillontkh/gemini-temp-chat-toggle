@@ -1,0 +1,63 @@
+{
+  "manifest_version": 3,
+  "name": "Gemini Temporary Chat Toggle",
+  "version": "1.0.0",
+  "description": "Toggle Google Gemini's Temporary Chat with a configurable keyboard shortcut.",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "permissions": [
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "*://gemini.google.com/*"
+  ],
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://gemini.google.com/*"
+      ],
+      "js": [
+        "content/content.js"
+      ],
+      "css": [
+        "content/toast.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "commands": {
+    "toggle-temporary-chat": {
+      "suggested_key": {
+        "default": "Alt+Shift+T",
+        "mac": "Alt+Shift+T"
+      },
+      "description": "Toggle Gemini Temporary Chat mode"
+    }
+  },
+  "action": {
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png"
+    },
+    "default_title": "Gemini Temporary Chat Settings",
+    "default_popup": "options/options.html"
+  },
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": false
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "gemini-temp-chat@dillontkh",
+      "strict_min_version": "109.0",
+      "update_url": "https://raw.githubusercontent.com/dillontkh/gemini-temp-chat-addon/main/updates.json"
+    }
+  }
+}

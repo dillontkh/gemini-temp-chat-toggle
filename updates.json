@@ -1,0 +1,12 @@
+{
+  "addons": {
+    "gemini-temp-chat@dillontkh": {
+      "updates": [
+        {
+          "version": "1.0.0",
+          "update_link": "https://github.com/dillontkh/gemini-temp-chat-addon/releases/download/v1.0.0/gemini-temp-chat-addon.xpi"
+        }
+      ]
+    }
+  }
+}
