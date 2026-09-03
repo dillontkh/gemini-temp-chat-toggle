@@ -53,17 +53,22 @@ jobs:
             --api-key="$WEB_EXT_API_KEY" \
             --api-secret="$WEB_EXT_API_SECRET"
 
-          XPI_FILE=$(ls web-ext-artifacts/*.xpi | head -n 1)
-          if [ -z "$XPI_FILE" ]; then
+          ORIGINAL_XPI=$(ls web-ext-artifacts/*.xpi | head -n 1)
+          if [ -z "$ORIGINAL_XPI" ]; then
             echo "Error: No .xpi file found in web-ext-artifacts"
             exit 1
           fi
 
-          echo "xpi_file=$XPI_FILE" >> $GITHUB_OUTPUT
-          XPI_NAME=$(basename "$XPI_FILE")
+          TARGET_XPI="web-ext-artifacts/gemini_temporary_chat_toggle-${VERSION}.xpi"
+          if [ "$ORIGINAL_XPI" != "$TARGET_XPI" ]; then
+            mv "$ORIGINAL_XPI" "$TARGET_XPI"
+          fi
+
+          echo "xpi_file=$TARGET_XPI" >> $GITHUB_OUTPUT
+          XPI_NAME=$(basename "$TARGET_XPI")
           echo "xpi_name=$XPI_NAME" >> $GITHUB_OUTPUT
 
-          SHA256=$(sha256sum "$XPI_FILE" | awk '{print $1}')
+          SHA256=$(sha256sum "$TARGET_XPI" | awk '{print $1}')
           echo "sha256=$SHA256" >> $GITHUB_OUTPUT
 
       - name: Update updates.json on main
