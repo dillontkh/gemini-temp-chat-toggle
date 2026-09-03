@@ -9,7 +9,8 @@ EXCLUDE_DIRS = {
 }
 EXCLUDE_FILES = {
     "package.json", "package-lock.json", ".gitignore",
-    ".web-ext-config.cjs", "gemini-temp-chat-toggle.zip"
+    ".web-ext-config.cjs", "gemini-temp-chat-toggle.zip",
+    "normal.html", "temporary.html"
 }
 
 print(f"Building clean release zip at {zip_path}...")

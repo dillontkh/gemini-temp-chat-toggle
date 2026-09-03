@@ -12,9 +12,6 @@
     showToast: true
   };
 
-  // State tracker to ensure reliable toggling
-  let isTemporaryMode = false;
-
   // Load user settings
   browser.storage.sync.get({
     shortcut: "Alt+Shift+T",
@@ -33,18 +30,27 @@
 
   /**
    * Search for the Temporary Chat button in the Gemini DOM
+   * In Gemini: located in top-bar-actions as <temp-chat-button>
    */
   function findTemporaryChatButton() {
-    // 1. Check aria-label
-    let el = document.querySelector('[aria-label*="Temporary chat" i]');
-    if (el) return el.closest('button, [role="button"], a') || el;
+    // 1. Target dedicated Gemini Angular component
+    let el = document.querySelector('temp-chat-button button, [data-test-id="temp-chat-button-container"] button, .temp-chat-button button');
+    if (el) return el;
 
-    // 2. Check data-tooltip
+    // 2. Target by aria-label
+    el = document.querySelector('button[aria-label*="Temporary chat" i]');
+    if (el) return el;
+
+    // 3. Target by data-tooltip
     el = document.querySelector('[data-tooltip*="Temporary chat" i]');
-    if (el) return el.closest('button, [role="button"], a') || el;
+    if (el) return el.closest('button, [role="button"]') || el;
 
-    // 3. Search buttons by text content
-    const buttons = document.querySelectorAll('button, [role="button"], a');
+    // 4. Partial attribute fallback
+    el = document.querySelector('[aria-label*="Temporary chat" i]');
+    if (el) return el.closest('button, [role="button"]') || el;
+
+    // 5. Check text content
+    const buttons = document.querySelectorAll('button, [role="button"]');
     for (const btn of buttons) {
       if (btn.children.length <= 3) {
         const text = (btn.innerText || btn.textContent || '').trim();
@@ -58,193 +64,90 @@
   }
 
   /**
-   * Search for the New Chat button in the Gemini DOM
+   * Check if Gemini is currently in Temporary Chat mode.
+   * Matches verified Gemini DOM markers:
+   * - <gem-icon-button class="temp-chat-on">
+   * - <chat-window class="is-temporary-chat">
+   * - <mat-icon data-mat-icon-name="close"> inside temp-chat-button
+   * - <h1 class="temporary-chat-card-container"> / <div class="temporary-chat-card">
+   * - Card text: "Temporary chats don't appear in recent chats and aren't used to improve Google AI"
    */
-  function findNewChatButton() {
-    // 1. Check aria-label
-    let el = document.querySelector('[aria-label*="New chat" i]');
-    if (el) return el.closest('button, [role="button"], a') || el;
-
-    // 2. Check data-tooltip
-    el = document.querySelector('[data-tooltip*="New chat" i]');
-    if (el) return el.closest('button, [role="button"], a') || el;
-
-    // 3. Search buttons by text content
-    const buttons = document.querySelectorAll('button, [role="button"], a');
-    for (const btn of buttons) {
-      if (btn.children.length <= 3) {
-        const text = (btn.innerText || btn.textContent || '').trim();
-        if (/^new\s*chat$/i.test(text)) {
-          return btn;
-        }
-      }
+  function isTemporaryChatActive() {
+    // 1. Native Gemini class on button container
+    if (document.querySelector('.temp-chat-on, temp-chat-button.temp-chat-on, gem-icon-button.temp-chat-on, [data-test-id="temp-chat-button-container"] .temp-chat-on')) {
+      return true;
     }
 
-    // 4. Link to /app (the new chat link on Gemini)
-    el = document.querySelector('a[href="/app"], a[href="/"]');
-    if (el) return el;
+    // 2. Icon inside temporary chat button changes to "close"
+    if (document.querySelector('temp-chat-button [data-mat-icon-name="close"], .temp-chat-button [data-mat-icon-name="close"], temp-chat-button [fonticon="close"], .temp-chat-button [fonticon="close"]')) {
+      return true;
+    }
 
-    return null;
-  }
+    // 3. Class on chat-window or body
+    if (document.querySelector('chat-window.is-temporary-chat, .is-temporary-chat')) {
+      return true;
+    }
 
-  /**
-   * Check for Gemini's in-page Temporary Chat banner or heading
-   */
-  function hasTemporaryBanner() {
-    // Check main area or whole page for temporary chat banner text
-    const mainArea = document.querySelector('main, [role="main"], .conversation-container, #chat-history') || document.body;
-    const fullText = mainArea ? (mainArea.textContent || '') : '';
+    // 4. Temporary chat card in DOM
+    if (document.querySelector('.temporary-chat-card, .temporary-chat-card-container, .temporary-chat-header')) {
+      return true;
+    }
 
-    // Gemini banner phrasing matches:
-    // - "Your chats aren't saved to your chat history or used to train Gemini apps."
-    // - "Chats aren't saved..."
-    // - "chats won't be saved..."
-    if (/chats? (aren't|are not|won't be|not) saved/i.test(fullText)) return true;
-    if (/saved to your chat history/i.test(fullText)) return true;
-    if (/train gemini apps/i.test(fullText)) return true;
-
-    // Check for "Temporary chat" title / header outside the navigation sidebar
-    const headings = (mainArea || document.body).querySelectorAll('h1, h2, h3, h4, [role="heading"], div, span');
-    for (const h of headings) {
-      if (h.children.length <= 1 && h.textContent) {
-        const t = h.textContent.trim();
-        if (/^temporary\s*chat$/i.test(t)) {
-          // Verify this element is NOT the sidebar button
-          const isSidebarButton = h.closest('aside, nav, [role="navigation"], .sidebar');
-          if (!isSidebarButton) {
-            return true;
-          }
-        }
-      }
+    // 5. Specific text in the main card
+    const mainArea = document.querySelector('main, [role="main"], chat-app') || document.body;
+    const text = mainArea ? (mainArea.textContent || '') : '';
+    if (/don't appear in recent chats/i.test(text) && /aren't used to improve google ai/i.test(text)) {
+      return true;
+    }
+    if (/chats? (aren't|are not|won't be|not) saved/i.test(text)) {
+      return true;
     }
 
     return false;
   }
 
   /**
-   * Check if Gemini is currently in Temporary Chat mode
-   */
-  function isTemporaryChatActive() {
-    // 1. Explicit banner or heading in the main view
-    if (hasTemporaryBanner()) {
-      isTemporaryMode = true;
-      return true;
-    }
-
-    // 2. Check input box placeholder
-    const inputs = document.querySelectorAll('textarea, [contenteditable="true"], rich-textarea, .ql-editor');
-    for (const input of inputs) {
-      const ph = input.getAttribute('placeholder') || 
-                 input.getAttribute('data-placeholder') || 
-                 input.getAttribute('aria-label') || '';
-      if (/temporary/i.test(ph)) {
-        isTemporaryMode = true;
-        return true;
-      }
-    }
-
-    // 3. Check Temporary Chat button toggle attribute
-    const tempBtn = findTemporaryChatButton();
-    if (tempBtn) {
-      const pressed = tempBtn.getAttribute('aria-pressed');
-      const checked = tempBtn.getAttribute('aria-checked');
-      const selected = tempBtn.getAttribute('aria-selected');
-      if (pressed === 'true' || checked === 'true' || selected === 'true') {
-        isTemporaryMode = true;
-        return true;
-      }
-      if (tempBtn.classList.contains('active') || tempBtn.classList.contains('selected')) {
-        isTemporaryMode = true;
-        return true;
-      }
-    }
-
-    // 4. Return tracked state
-    return isTemporaryMode;
-  }
-
-  // Observe DOM changes to keep tracked state accurate when user clicks with mouse
-  const observer = new MutationObserver(() => {
-    if (hasTemporaryBanner()) {
-      isTemporaryMode = true;
-    }
-  });
-
-  if (document.body) {
-    observer.observe(document.body, { childList: true, subtree: true });
-  } else {
-    document.addEventListener("DOMContentLoaded", () => {
-      observer.observe(document.body, { childList: true, subtree: true });
-    });
-  }
-
-  /**
-   * Toggle Temporary Chat state
+   * Toggle Temporary Chat state.
+   * Clicking Gemini's Temporary Chat button natively toggles between Standard and Temporary chat.
    */
   async function toggleTemporaryChat() {
-    const isActive = isTemporaryChatActive();
+    let tempBtn = findTemporaryChatButton();
 
-    if (isActive) {
-      // Currently ACTIVE -> Switch to OFF
-      const newChatBtn = findNewChatButton();
-      const tempBtn = findTemporaryChatButton();
-
-      // Starting a "New chat" exits temporary mode in Gemini
-      if (newChatBtn) {
-        newChatBtn.click();
-        isTemporaryMode = false;
-        showToast("Temporary Chat: OFF", "off");
-        return;
-      }
-
-      // If tempBtn is explicitly a toggle button, clicking it toggles it off
-      if (tempBtn && (tempBtn.getAttribute('aria-pressed') === 'true' || tempBtn.classList.contains('active'))) {
-        tempBtn.click();
-        isTemporaryMode = false;
-        showToast("Temporary Chat: OFF", "off");
-        return;
-      }
-
-      // Fallback: click tempBtn if newChatBtn wasn't found
-      if (tempBtn) {
-        tempBtn.click();
-        isTemporaryMode = false;
-        showToast("Temporary Chat: OFF", "off");
-        return;
-      }
-
-      showToast("Unable to exit temporary chat: button not found", "error");
-    } else {
-      // Currently INACTIVE -> Switch to ON
-      let tempBtn = findTemporaryChatButton();
-
-      if (tempBtn) {
-        tempBtn.click();
-        isTemporaryMode = true;
-        showToast("Temporary Chat: ON", "on");
-        return;
-      }
-
-      // If button not found, the side panel might be collapsed.
+    if (!tempBtn) {
+      // Check if sidebar / top bar is collapsed or menu needs opening
       const menuBtn = document.querySelector(
         'button[aria-label*="Main menu" i], button[aria-label*="Expand side panel" i], button[aria-label*="Open side panel" i]'
       );
-
       if (menuBtn) {
         menuBtn.click();
         setTimeout(() => {
           tempBtn = findTemporaryChatButton();
           if (tempBtn) {
-            tempBtn.click();
-            isTemporaryMode = true;
-            showToast("Temporary Chat: ON", "on");
+            executeToggle(tempBtn);
           } else {
             showToast("Temporary chat button not found", "error");
           }
-        }, 250);
+        }, 200);
       } else {
         showToast("Temporary chat button not found", "error");
       }
+      return;
+    }
+
+    executeToggle(tempBtn);
+  }
+
+  function executeToggle(tempBtn) {
+    const wasActive = isTemporaryChatActive();
+
+    // Click the native button to toggle mode
+    tempBtn.click();
+
+    // Display the resulting state
+    if (wasActive) {
+      showToast("Temporary Chat: OFF", "off");
+    } else {
+      showToast("Temporary Chat: ON", "on");
     }
   }
 

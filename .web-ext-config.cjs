@@ -6,7 +6,9 @@ module.exports = {
     'tests/**',
     'dev/**',
     'scripts/**',
-    '.web-ext-config.js',
+    '.web-ext-config.cjs',
+    'normal.html',
+    'temporary.html',
     '*.zip',
     '*.xpi'
   ]
