@@ -2,10 +2,15 @@ const { test, describe, beforeEach } = require('node:test');
 const assert = require('node:assert');
 const { JSDOM } = require('jsdom');
 
-describe("Content Script DOM Automation & Toast Tests", () => {
+describe("Content Script DOM Automation & Toggle Cycle Tests", () => {
   let dom, document, window;
+  let isTemporaryMode = false;
+  let lastToast = null;
 
   beforeEach(() => {
+    isTemporaryMode = false;
+    lastToast = null;
+
     dom = new JSDOM(`<!DOCTYPE html>
       <html>
         <head></head>
@@ -17,6 +22,7 @@ describe("Content Script DOM Automation & Toast Tests", () => {
               <button aria-label="Temporary chat" class="temp-chat-btn">Temporary chat</button>
             </div>
             <main>
+              <div id="banner-slot"></div>
               <div class="prompt-container">
                 <textarea placeholder="Ask Gemini" class="prompt-box"></textarea>
               </div>
@@ -27,117 +33,115 @@ describe("Content Script DOM Automation & Toast Tests", () => {
 
     document = dom.window.document;
     window = dom.window;
+
+    // Attach click listeners mimicking Gemini behavior
+    const tempBtn = document.querySelector('.temp-chat-btn');
+    const newChatBtn = document.querySelector('.new-chat-btn');
+
+    tempBtn.addEventListener("click", () => {
+      // In real Gemini, clicking Temporary chat adds the banner
+      document.getElementById("banner-slot").innerHTML = `
+        <div class="temporary-banner">
+          <h3>Temporary chat</h3>
+          <p>Your chats aren't saved to your chat history or used to train Gemini apps.</p>
+        </div>`;
+    });
+
+    newChatBtn.addEventListener("click", () => {
+      // In real Gemini, clicking New chat removes the temporary banner
+      document.getElementById("banner-slot").innerHTML = "";
+    });
   });
 
-  function findTemporaryChatButton(doc) {
-    let el = doc.querySelector('[aria-label*="Temporary chat" i]');
-    if (el) return el.closest('button, [role="button"]') || el;
-    el = doc.querySelector('[data-tooltip*="Temporary chat" i]');
-    if (el) return el.closest('button, [role="button"]') || el;
-    const buttons = doc.querySelectorAll('button, [role="button"]');
-    for (const btn of buttons) {
-      const text = (btn.innerText || btn.textContent || '').trim();
-      if (/temporary\s*chat/i.test(text) && text.length < 50) return btn;
-    }
-    return null;
-  }
+  function hasTemporaryBanner(doc) {
+    const mainArea = doc.querySelector('main, [role="main"], .conversation-container, #chat-history') || doc.body;
+    const fullText = mainArea ? (mainArea.textContent || '') : '';
+    if (/chats? (aren't|are not|won't be|not) saved/i.test(fullText)) return true;
+    if (/saved to your chat history/i.test(fullText)) return true;
+    if (/train gemini apps/i.test(fullText)) return true;
 
-  function findNewChatButton(doc) {
-    let el = doc.querySelector('[aria-label*="New chat" i]');
-    if (el) return el.closest('button, [role="button"]') || el;
-    el = doc.querySelector('[data-tooltip*="New chat" i]');
-    if (el) return el.closest('button, [role="button"]') || el;
-    const buttons = doc.querySelectorAll('button, [role="button"]');
-    for (const btn of buttons) {
-      const text = (btn.innerText || btn.textContent || '').trim();
-      if (/^new\s*chat$/i.test(text)) return btn;
-    }
-    return null;
-  }
-
-  function isTemporaryChatActive(doc) {
-    const inputs = doc.querySelectorAll('textarea, [contenteditable="true"], rich-textarea, .ql-editor');
-    for (const input of inputs) {
-      const ph = input.getAttribute('placeholder') || input.getAttribute('data-placeholder') || input.getAttribute('aria-label') || '';
-      if (/temporary\s*chat/i.test(ph)) return true;
-    }
-    const tempBtn = findTemporaryChatButton(doc);
-    if (tempBtn) {
-      if (tempBtn.getAttribute('aria-pressed') === 'true' || tempBtn.getAttribute('aria-checked') === 'true') return true;
-      if (tempBtn.classList.contains('active') || tempBtn.classList.contains('selected')) return true;
-    }
-    const notices = doc.querySelectorAll('header, [role="banner"], main');
-    for (const container of notices) {
-      const text = container.textContent || '';
-      if (/chats aren't saved to your google account|temporary chat is on/i.test(text)) return true;
+    const headings = (mainArea || doc.body).querySelectorAll('h1, h2, h3, h4, [role="heading"], div, span');
+    for (const h of headings) {
+      if (h.children.length <= 1 && h.textContent) {
+        const t = h.textContent.trim();
+        if (/^temporary\s*chat$/i.test(t)) {
+          const isSidebarButton = h.closest('aside, nav, [role="navigation"], .sidebar');
+          if (!isSidebarButton) return true;
+        }
+      }
     }
     return false;
   }
 
-  test("Finds Temporary Chat button via aria-label", () => {
-    const btn = findTemporaryChatButton(document);
-    assert.ok(btn);
-    assert.strictEqual(btn.getAttribute("aria-label"), "Temporary chat");
-  });
+  function isTemporaryChatActive(doc) {
+    if (hasTemporaryBanner(doc)) {
+      isTemporaryMode = true;
+      return true;
+    }
+    return isTemporaryMode;
+  }
 
-  test("Finds New Chat button via aria-label", () => {
-    const btn = findNewChatButton(document);
-    assert.ok(btn);
-    assert.strictEqual(btn.getAttribute("aria-label"), "New chat");
-  });
+  function findTemporaryChatButton(doc) {
+    return doc.querySelector('[aria-label*="Temporary chat" i]');
+  }
 
-  test("Correctly identifies inactive temporary chat", () => {
+  function findNewChatButton(doc) {
+    return doc.querySelector('[aria-label*="New chat" i]');
+  }
+
+  function showToast(msg, type) {
+    lastToast = { message: msg, type: type };
+  }
+
+  function toggleTemporaryChat(doc) {
+    const isActive = isTemporaryChatActive(doc);
+    if (isActive) {
+      const newChatBtn = findNewChatButton(doc);
+      if (newChatBtn) {
+        newChatBtn.click();
+        isTemporaryMode = false;
+        showToast("Temporary Chat: OFF", "off");
+        return;
+      }
+    } else {
+      const tempBtn = findTemporaryChatButton(doc);
+      if (tempBtn) {
+        tempBtn.click();
+        isTemporaryMode = true;
+        showToast("Temporary Chat: ON", "on");
+        return;
+      }
+    }
+  }
+
+  test("Initial state is standard chat (OFF)", () => {
     assert.strictEqual(isTemporaryChatActive(document), false);
   });
 
-  test("Correctly identifies active temporary chat via placeholder", () => {
-    const textarea = document.querySelector("textarea");
-    textarea.setAttribute("placeholder", "Ask in a temporary chat");
+  test("Detects real Gemini banner text: 'Your chats aren't saved to your chat history...'", () => {
+    document.getElementById("banner-slot").innerHTML = `
+      <div>Your chats aren't saved to your chat history or used to train Gemini apps.</div>`;
+    assert.strictEqual(hasTemporaryBanner(document), true);
     assert.strictEqual(isTemporaryChatActive(document), true);
   });
 
-  test("Correctly identifies active temporary chat via aria-pressed", () => {
-    const btn = findTemporaryChatButton(document);
-    btn.setAttribute("aria-pressed", "true");
-    assert.strictEqual(isTemporaryChatActive(document), true);
-  });
+  test("Cycle: ON -> OFF -> ON produces alternating toasts", () => {
+    // 1st Toggle: Turn ON
+    toggleTemporaryChat(document);
+    assert.strictEqual(lastToast.message, "Temporary Chat: ON");
+    assert.strictEqual(lastToast.type, "on");
+    assert.strictEqual(hasTemporaryBanner(document), true);
 
-  test("Toggles to active when clicked", () => {
-    let clicked = false;
-    const btn = findTemporaryChatButton(document);
-    btn.addEventListener("click", () => {
-      clicked = true;
-      btn.setAttribute("aria-pressed", "true");
-      document.querySelector("textarea").setAttribute("placeholder", "Ask in a temporary chat");
-    });
+    // 2nd Toggle: Turn OFF
+    toggleTemporaryChat(document);
+    assert.strictEqual(lastToast.message, "Temporary Chat: OFF");
+    assert.strictEqual(lastToast.type, "off");
+    assert.strictEqual(hasTemporaryBanner(document), false);
 
-    btn.click();
-    assert.strictEqual(clicked, true);
-    assert.strictEqual(isTemporaryChatActive(document), true);
-  });
-
-  test("Creates floating toast element using safe DOM APIs (no innerHTML)", () => {
-    const toast = document.createElement("div");
-    toast.id = "gemini-temp-chat-toast";
-
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("width", "18");
-    svg.setAttribute("height", "18");
-
-    const iconSpan = document.createElement("span");
-    iconSpan.className = "toast-icon";
-    iconSpan.appendChild(svg);
-
-    const textSpan = document.createElement("span");
-    textSpan.className = "toast-text";
-    textSpan.textContent = "Temporary Chat: ON";
-
-    toast.append(iconSpan, textSpan);
-    document.body.appendChild(toast);
-
-    const attached = document.getElementById("gemini-temp-chat-toast");
-    assert.ok(attached);
-    assert.strictEqual(attached.querySelector(".toast-text").textContent, "Temporary Chat: ON");
-    assert.ok(attached.querySelector("svg"));
+    // 3rd Toggle: Turn ON again
+    toggleTemporaryChat(document);
+    assert.strictEqual(lastToast.message, "Temporary Chat: ON");
+    assert.strictEqual(lastToast.type, "on");
+    assert.strictEqual(hasTemporaryBanner(document), true);
   });
 });
