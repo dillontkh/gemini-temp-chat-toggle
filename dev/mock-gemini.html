@@ -214,6 +214,13 @@
       modeStatus.textContent = "Mode: Standard Chat";
       modeStatus.style.color = "#e3e3e3";
     });
+
+    // Listen for Gemini's native Ctrl+Shift+O shortcut
+    window.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === "o" || e.key === "O" || e.code === "KeyO")) {
+        newChatBtn.click();
+      }
+    });
   </script>
 
   <!-- Injected Add-on Content Script -->
