@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-10-07
+
+### Added
+- **Quick New Temporary Chat**: Triggering the shortcut from an ongoing conversation or elsewhere on `gemini.google.com` now automatically starts a new chat (via Gemini's native `Ctrl + Shift + O` shortcut) and turns on Temporary Chat.
+- **Context-Aware Toggle Logic**: Pressing the shortcut now only toggles Temporary Chat off if you are already on a fresh temporary chat page; otherwise, it always initiates a new temporary chat.
+- **Settling Delay & Activation Retry**: Added an Angular hydration settling delay and automatic retry verification to ensure reliable activation during SPA view transitions.
+- **Navigation Recovery**: Added session storage persistence to preserve pending temporary chat activations across page reloads.
+- **Sidebar State Preservation**: Uses native keyboard event dispatching rather than sidebar element clicks so the collapsed sidebar panel remains closed.
+
+---
+
 ## [1.0.3] - 2026-09-03
 
 ### Fixed
